@@ -1,50 +1,21 @@
 # Drug Search Assistant
 
-## Business Problem
+A command-line assistant that searches the local `DRUG_Handbook_2026.pdf` reference and uses the retrieved passages to answer medication information questions. It uses LangChain's agent loop with a single retrieval tool, `search_drugs`.
 
-Users need a simple way to search a local drug reference for medication
-information. This assistant retrieves relevant passages from the supplied PDF
-and answers using that source.
+## What it does
 
-## Objective
+- Loads and splits the local PDF when the application starts.
+- Creates embeddings with OpenAI and stores the indexed chunks in memory for that run.
+- Lets the model decide when to search the reference, then answers from the retrieved context.
+- Runs in a terminal question-and-answer loop; enter `exit` or `quit` to stop.
 
-Build a working drug search assistant using LangChain components, with
-retrieval exposed to the agent as the `search_drugs` tool.
+The assistant does not include medication calculation, interaction checking, prescription validation, or allergy checking tools. It is not a substitute for advice from a qualified healthcare professional.
 
-## LangChain Concepts
+## Requirements
 
-- System Prompt
-- RAG
-- Retriever (exposed as a tool)
-- LLM
-- Tool Calling
-- Tool Validation
-- Agent (`create_agent`)
-
-## Architecture
-
-The agent decides first whether a tool is needed. RAG is **not** a mandatory
-first step — it runs only for knowledge questions, as the `search_drugs`
-tool.
-
-## Project Structure
-
-```
-hr_assistant/
-├── app.py                 # Terminal interface — ask questions in a loop.
-├── .env.example           # Template for your OpenAI API key.
-├── requirements.txt       # Python dependencies.
-├── README.md              # This file.
-├── data/
-│   └── DRUG_Handbook_2026.pdf   # Drug reference RAG source.
-├── src/
-    ├── config.py          # Settings: model names, RAG params, file paths.
-    ├── prompts.py         # The agent's system prompt.
-    ├── rag.py             # Load, split, embed, retrieve + the search_drugs tool.
-    ├── chain.py           # The model and the create_agent agent.
-    └── assistant.py       # Builds the agent and answers a question.
-
-```
+- Python 3.10 or newer
+- An OpenAI API key with access to `gpt-4.1-mini` and `text-embedding-3-small`
+- The reference PDF at `data/DRUG_Handbook_2026.pdf`
 
 ## Setup
 
@@ -52,37 +23,58 @@ hr_assistant/
 
    ```bash
    python -m venv .venv
-   # Windows
-   .venv\Scripts\activate
    # macOS / Linux
    source .venv/bin/activate
+   # Windows PowerShell
+   .venv\Scripts\Activate.ps1
    ```
 
-2. Install the requirements:
+2. Install the dependencies:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Create your `.env` file from the template and add your key:
+3. Create a `.env` file in the project root and add your API key:
 
-   ```bash
-   # .env
+   ```dotenv
    OPENAI_API_KEY=your_key_here
    ```
 
+4. Confirm the reference file exists at `data/DRUG_Handbook_2026.pdf`. The configured path is set in `src/config.py`.
+
 ## Run
+
+From the project root, with the virtual environment active:
 
 ```bash
 python app.py
 ```
 
-The drug reference is loaded and indexed once at startup, then you can ask questions
-in a loop.
+The PDF is loaded and embedded at startup. This requires API access and can take a little time. The vector store is in memory, so the PDF is reprocessed on each launch. The app prints startup errors if the API key or reference PDF is missing.
 
-## Example Questions
+## Example questions
 
 - What is this medicine used for?
-- What are the common side effects listed for this medicine?
-- What ingredients are listed for this medicine?
-- Search the reference for medicines used for allergies.
+- What side effects does the handbook list for this medicine?
+- Which medicines in the reference contain a particular ingredient?
+- What medicines does the reference list for allergies?
+
+Ask about information covered in the local handbook. The assistant may not find an answer if the PDF does not contain searchable text or relevant information.
+
+## Project layout
+
+```text
+.
+├── app.py                  # Terminal interface
+├── requirements.txt        # Python dependencies
+├── data/
+│   └── DRUG_Handbook_2026.pdf
+└── src/
+    ├── assistant.py        # Builds the assistant and handles questions
+    ├── chain.py            # Model and LangChain agent setup
+    ├── config.py           # API key, model, retrieval settings, and paths
+    ├── prompts.py           # Agent instructions
+    ├── rag.py               # PDF loading, chunking, embeddings, and retrieval
+    └── tools.py             # The search_drugs retrieval tool
+```
